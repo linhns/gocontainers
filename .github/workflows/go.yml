@@ -1,11 +1,9 @@
 name: CI
-
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
-
+    branches: ["main"]
 jobs:
   build:
     runs-on: ${{ matrix.os }}
@@ -15,27 +13,35 @@ jobs:
         os: ["ubuntu-latest", "windows-latest", "macos-latest"]
         go: ["1.23.x"]
     steps:
-    - uses: actions/checkout@v4
-
-    - name: Set up Go
-      uses: actions/setup-go@v5
-      with:
-        go-version: ${{ matrix.go }}
-
-    - name: Verify dependencies
-      run: go mod verify
-
-    - name: Build
-      run: go build -v ./...
-    
-    - name: Vet
-      run: go vet ./...
-
-    - name: Static analysis
-      run: go run honnef.co/go/tools/cmd/staticcheck@latest ./...
-    
-    - name: Check vulnerabilities
-      run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
-
-    - name: Test
-      run: go test -v -vet=off ./...
+      - uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go }}
+      - name: Verify dependencies
+        run: go mod verify
+      - name: Build
+        run: go build -v ./...
+      - name: Vet
+        run: go vet ./...
+      - name: Static analysis
+        run: go run honnef.co/go/tools/cmd/staticcheck@latest ./...
+      - name: Check vulnerabilities
+        run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+      - name: Test
+        run: go test -v -vet=off ./...
+  golangci:
+    strategy:
+      matrix:
+        go: ["1.23.x"]
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go }}
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: v1.60
