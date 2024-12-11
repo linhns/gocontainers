@@ -175,3 +175,198 @@ func TestAllCollectRoundtrip(t *testing.T) {
 		assert.True(t, set.Equal(s, rdtrip))
 	})
 }
+
+func TestUnion(t *testing.T) {
+	t.Parallel()
+
+	rapid.Check(t, func(t *rapid.T) {
+		s1 := set.New[int]()
+		s2 := set.New[int]()
+		gen := rapid.SliceOf(rapid.Int())
+		data1 := gen.Draw(t, "data1")
+		data2 := gen.Draw(t, "data2")
+		for _, v := range data1 {
+			s1.Add(v)
+		}
+		for _, v := range data2 {
+			s2.Add(v)
+		}
+
+		u := set.Union(s1, s2)
+		expected := slices.Concat(data1, data2)
+		slices.Sort(expected)
+		expected = slices.Compact(expected)
+		got := slices.Collect(u.All())
+		slices.Sort(got)
+		assert.Equal(t, expected, got)
+
+		if len(data1)+len(data2) > 0 {
+			s3 := set.New[int]()
+			dups := rapid.SliceOf(rapid.SampledFrom(expected)).Draw(t, "dups")
+			for _, v := range dups {
+				s3.Add(v)
+			}
+			u2 := set.Union(u, s3)
+			got = slices.Collect(u2.All())
+			slices.Sort(got)
+			assert.Equal(t, expected, got)
+		}
+	})
+}
+
+func TestIntersection(t *testing.T) {
+	t.Parallel()
+
+	rapid.Check(t, func(t *rapid.T) {
+		s1 := set.New[int]()
+		s2 := set.New[int]()
+		gen := rapid.SliceOfDistinct(rapid.Int(), rapid.ID)
+		data1 := gen.Draw(t, "data1")
+		data2 := gen.Draw(t, "data2")
+		for _, v := range data1 {
+			s1.Add(v)
+		}
+		for _, v := range data2 {
+			s2.Add(v)
+		}
+
+		i := set.Intersection(s1, s2)
+
+		var expected []int
+		for _, v := range data1 {
+			if slices.Contains(data2, v) {
+				expected = append(expected, v)
+			}
+		}
+		slices.Sort(expected)
+		got := slices.Collect(i.All())
+		slices.Sort(got)
+		assert.Equal(t, expected, got)
+	})
+}
+
+func TestDifference(t *testing.T) {
+	t.Parallel()
+
+	rapid.Check(t, func(t *rapid.T) {
+		s1 := set.New[int]()
+		s2 := set.New[int]()
+		gen := rapid.SliceOfDistinct(rapid.Int(), rapid.ID)
+		data1 := gen.Draw(t, "data1")
+		data2 := gen.Draw(t, "data2")
+		for _, v := range data1 {
+			s1.Add(v)
+		}
+		for _, v := range data2 {
+			s2.Add(v)
+		}
+
+		d := set.Difference(s1, s2)
+
+		var expected []int
+		for _, v := range data1 {
+			if !slices.Contains(data2, v) {
+				expected = append(expected, v)
+			}
+		}
+		slices.Sort(expected)
+		got := slices.Collect(d.All())
+		slices.Sort(got)
+		assert.Equal(t, expected, got)
+	})
+}
+
+func TestSetIdempotence(t *testing.T) {
+	t.Parallel()
+
+	rapid.Check(t, func(t *rapid.T) {
+		s := set.New[int]()
+		for _, v := range rapid.SliceOf(rapid.Int()).Draw(t, "data") {
+			s.Add(v)
+		}
+		assert.True(t, set.Equal(s, set.Union(s, s)))
+		assert.True(t, set.Equal(s, set.Intersection(s, s)))
+		assert.True(t, set.Equal(set.New[int](), set.Difference(s, s)))
+	})
+}
+
+func TestSetCommutativity(t *testing.T) {
+	t.Parallel()
+
+	rapid.Check(t, func(t *rapid.T) {
+		gen := rapid.SliceOf(rapid.Int())
+		a := set.New[int]()
+		b := set.New[int]()
+		for _, v := range gen.Draw(t, "data1") {
+			a.Add(v)
+		}
+		for _, v := range gen.Draw(t, "data2") {
+			b.Add(v)
+		}
+		assert.True(t, set.Equal(set.Intersection(a, b), set.Intersection(b, a)))
+		assert.True(t, set.Equal(set.Union(a, b), set.Union(b, a)))
+	})
+}
+
+func TestSetAssociativity(t *testing.T) {
+	t.Parallel()
+
+	rapid.Check(t, func(t *rapid.T) {
+		gen := rapid.SliceOf(rapid.Int())
+		a := set.New[int]()
+		b := set.New[int]()
+		c := set.New[int]()
+		for _, v := range gen.Draw(t, "data1") {
+			a.Add(v)
+		}
+		for _, v := range gen.Draw(t, "data2") {
+			b.Add(v)
+		}
+		for _, v := range gen.Draw(t, "data3") {
+			c.Add(v)
+		}
+		assert.True(t, set.Equal(set.Intersection(a, set.Intersection(b, c)), set.Intersection(set.Intersection(a, b), c)))
+		assert.True(t, set.Equal(set.Union(a, set.Union(b, c)), set.Union(set.Union(a, b), c)))
+	})
+}
+
+func TestSetDistributivity(t *testing.T) {
+	t.Parallel()
+
+	rapid.Check(t, func(t *rapid.T) {
+		gen := rapid.SliceOf(rapid.Int())
+		a := set.New[int]()
+		b := set.New[int]()
+		c := set.New[int]()
+		for _, v := range gen.Draw(t, "data1") {
+			a.Add(v)
+		}
+		for _, v := range gen.Draw(t, "data2") {
+			b.Add(v)
+		}
+		for _, v := range gen.Draw(t, "data3") {
+			c.Add(v)
+		}
+		assert.True(t, set.Equal(set.Intersection(a, set.Union(b, c)), set.Union(set.Intersection(a, b), set.Intersection(a, c))))
+		assert.True(t, set.Equal(set.Union(a, set.Intersection(b, c)), set.Intersection(set.Union(a, b), set.Union(a, c))))
+	})
+}
+
+func TestSetAbsorption(t *testing.T) {
+	t.Parallel()
+
+	rapid.Check(t, func(t *rapid.T) {
+		gen := rapid.SliceOf(rapid.Int())
+		a := set.New[int]()
+		b := set.New[int]()
+		for _, v := range gen.Draw(t, "data1") {
+			a.Add(v)
+		}
+		for _, v := range gen.Draw(t, "data2") {
+			b.Add(v)
+		}
+
+		assert.True(t, set.Equal(set.Intersection(a, set.Union(a, b)), a))
+		assert.True(t, set.Equal(set.Union(a, set.Intersection(a, b)), a))
+	})
+}

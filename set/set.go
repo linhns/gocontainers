@@ -77,3 +77,40 @@ func Collect[K comparable](seq iter.Seq[K]) *Set[K] {
 	}
 	return s
 }
+
+// Union returns a new set that contains all elements from two sets
+func Union[K comparable](s1, s2 *Set[K]) *Set[K] {
+	result := New[K]()
+	for v := range s1.data {
+		result.Add(v)
+	}
+	for v := range s2.data {
+		result.Add(v)
+	}
+	return result
+}
+
+// Intersection returns a new set that contains common elements from two sets
+func Intersection[K comparable](s1, s2 *Set[K]) *Set[K] {
+	result := New[K]()
+	for v := range s1.data {
+		if s2.Contains(v) {
+			result.Add(v)
+		}
+	}
+
+	return result
+}
+
+// Difference returns a new set that contains elements
+// that are in the first set but not in the second set
+func Difference[K comparable](s1, s2 *Set[K]) *Set[K] {
+	result := New[K]()
+	for v := range s1.data {
+		if !s2.Contains(v) {
+			result.Add(v)
+		}
+	}
+
+	return result
+}
