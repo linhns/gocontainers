@@ -31,7 +31,7 @@ jobs:
       - name: Test
         run: go test -race -vet=off -coverprofile=coverage.txt -covermode=atomic ./...
       - name: Upload to Codecov
-        if: matrix.os == "ubuntu-latest" && matrix.go == "1.23"
+        if: matrix.os == 'ubuntu-latest' && matrix.go == '1.23'
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_ORG_TOKEN }}
