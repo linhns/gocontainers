@@ -11,7 +11,7 @@ jobs:
     strategy:
       matrix:
         os: ["ubuntu-latest", "windows-latest", "macos-latest"]
-        go: ["1.23.x"]
+        go: ["1.23"]
     steps:
       - uses: actions/checkout@v4
       - name: Set up Go
@@ -29,11 +29,16 @@ jobs:
       - name: Check vulnerabilities
         run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
       - name: Test
-        run: go test -v -vet=off ./...
+        run: go test -race -vet=off -coverprofile=coverage.txt -covermode=atomic ./...
+      - name: Upload to Codecov
+        if: matrix.os == "ubuntu-latest" && matrix.go == "1.23"
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_ORG_TOKEN }}
   golangci:
     strategy:
       matrix:
-        go: ["1.23.x"]
+        go: ["1.23"]
     name: lint
     runs-on: ubuntu-latest
     steps:
