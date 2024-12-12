@@ -38,7 +38,7 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         uses: codecov/codecov-action@v5
         with:
-          token: ${{ secrets.CODECOV_ORG_TOKEN }}
+          token: ${{ secrets.CODECOV_TOKEN }}
   golangci:
     strategy:
       matrix:
