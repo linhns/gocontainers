@@ -41,14 +41,18 @@ func TestAdd(t *testing.T) {
 func TestEqual(t *testing.T) {
 	t.Parallel()
 	rapid.Check(t, func(t *rapid.T) {
-		data := rapid.SliceOf(rapid.Int()).Draw(t, "data")
+		data := rapid.SliceOfNDistinct(rapid.Int(), 5, 5, rapid.ID).Draw(t, "data")
 		s1 := set.New[int]()
 		s2 := set.New[int]()
+		s1.Add(data[0])
+		assert.False(t, set.Equal(s1, s2), "sets of different sizes are not equal")
+		s2.Add(data[1])
+		assert.False(t, set.Equal(s1, s2), "sets with different elements are not equal")
 		for _, v := range data {
 			s1.Add(v)
 			s2.Add(v)
 		}
-		assert.True(t, set.Equal(s1, s2))
+		assert.True(t, set.Equal(s1, s2), "sets with the same elements are equal")
 	})
 }
 
@@ -144,6 +148,15 @@ func TestAll(t *testing.T) {
 		}
 
 		assert.True(t, slices.Equal(slices.Sorted(slices.Values(data)), slices.Sorted(s.All())))
+
+		dummy := make([]int, 0)
+		f := func(x int) bool {
+			dummy = append(dummy, x)
+			return false
+		}
+		s.All()(f)
+
+		assert.Equal(t, min(len(data), 1), len(dummy))
 	})
 }
 
