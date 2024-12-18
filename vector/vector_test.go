@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestVectorSingleElementAndBasicOperations(t *testing.T) {
+func TestSingleElementAndBasicOperations(t *testing.T) {
 	t.Parallel()
 
 	v := vector.New[int]()
@@ -23,7 +23,7 @@ func TestVectorSingleElementAndBasicOperations(t *testing.T) {
 	assert.Equal(t, false, ok)
 }
 
-func TestVectorCapacity(t *testing.T) {
+func TestCapacity(t *testing.T) {
 	t.Parallel()
 
 	v := vector.NewWithCapacity[int](4)
@@ -39,7 +39,7 @@ func TestVectorCapacity(t *testing.T) {
 	assert.True(t, v.Capacity() > 4)
 }
 
-func TestVectorGet(t *testing.T) {
+func TestGet(t *testing.T) {
 	t.Parallel()
 
 	v := vector.NewWithCapacity[int](4)
@@ -66,7 +66,7 @@ func TestVectorGet(t *testing.T) {
 	}
 }
 
-func TestVectorSet(t *testing.T) {
+func TestSet(t *testing.T) {
 	t.Parallel()
 
 	v := vector.NewWithCapacity[int](4)
@@ -92,7 +92,7 @@ func TestVectorSet(t *testing.T) {
 	}
 }
 
-func TestVectorGetSet(t *testing.T) {
+func TestGetSet(t *testing.T) {
 	t.Parallel()
 
 	v := vector.NewWithCapacity[int](4)
@@ -108,7 +108,35 @@ func TestVectorGetSet(t *testing.T) {
 	}
 }
 
-func TestVectorClear(t *testing.T) {
+func TestFront(t *testing.T) {
+	t.Parallel()
+
+	v := vector.New[int]()
+	_, ok := v.Front()
+	assert.False(t, ok)
+	v.Push(1)
+	v.Push(2)
+	v.Push(3)
+	val, ok := v.Front()
+	assert.True(t, ok)
+	assert.Equal(t, 1, val)
+}
+
+func TestBack(t *testing.T) {
+	t.Parallel()
+
+	v := vector.New[int]()
+	_, ok := v.Back()
+	assert.False(t, ok)
+	v.Push(1)
+	v.Push(2)
+	v.Push(3)
+	val, ok := v.Back()
+	assert.True(t, ok)
+	assert.Equal(t, 3, val)
+}
+
+func TestClear(t *testing.T) {
 	t.Parallel()
 
 	v := vector.NewWithCapacity[int](4)
@@ -121,7 +149,7 @@ func TestVectorClear(t *testing.T) {
 	assert.Equal(t, 4, v.Capacity())
 }
 
-func TestVectorReserve(t *testing.T) {
+func TestReserve(t *testing.T) {
 	t.Parallel()
 
 	v := vector.NewWithCapacity[int](4)
@@ -131,4 +159,96 @@ func TestVectorReserve(t *testing.T) {
 	assert.True(t, v.Capacity() >= 10)
 	v.Reserve(8)
 	assert.True(t, v.Capacity() >= 10)
+}
+
+func TestShrinkToFit(t *testing.T) {
+	t.Parallel()
+
+	v := vector.NewWithCapacity[int](10)
+	v.Push(1)
+	v.Push(2)
+	v.Push(3)
+	v.ShrinkToFit()
+	assert.Equal(t, 3, v.Capacity())
+}
+
+func TestResize(t *testing.T) {
+	t.Parallel()
+
+	v := vector.NewWithCapacity[int](1024)
+	for i := 0; i < 1024; i++ {
+		v.Push(1)
+	}
+
+	v.Resize(1000)
+	assert.Equal(t, 1000, v.Len())
+
+	v.Resize(1024)
+
+	for i := 1000; i < 1024; i++ {
+		val, ok := v.Get(i)
+		assert.Equal(t, 0, val)
+		assert.True(t, ok)
+	}
+}
+
+func TestInsert(t *testing.T) {
+	t.Parallel()
+
+	v := vector.New[int]()
+	v.Push(1)
+	v.Push(2)
+	v.Push(3)
+	v.Insert(1, 4)
+	assert.Equal(t, 4, v.Len())
+	val, _ := v.Get(1)
+	assert.Equal(t, 4, val)
+
+	v.Insert(4, 5)
+}
+
+func TestEqual(t *testing.T) {
+	t.Parallel()
+
+	v1 := vector.New[int]()
+	v2 := vector.New[int]()
+	assert.True(t, vector.Equal(v1, v2))
+
+	v1.Push(1)
+	assert.False(t, vector.Equal(v1, v2))
+
+	v2.Push(1)
+	assert.True(t, vector.Equal(v1, v2))
+
+	v1.Push(2)
+	v2.Push(3)
+	assert.False(t, vector.Equal(v1, v2))
+}
+
+func TestCollectValues(t *testing.T) {
+	t.Parallel()
+
+	v := vector.New[int]()
+	for i := 0; i < 10; i++ {
+		v.Push(i)
+	}
+
+	assert.True(t, vector.Equal(v, vector.Collect(v.Values())))
+}
+
+func TestAll(t *testing.T) {
+	t.Parallel()
+
+	v := vector.NewWithCapacity[int](5)
+	elems := []int{1, 2, 3, 4, 5}
+	for _, elem := range elems {
+		v.Push(elem)
+	}
+
+	idx := 0
+	for i, val := range v.All() {
+		assert.Equal(t, i, idx)
+		assert.Equal(t, elems[i], val)
+		idx++
+	}
 }
