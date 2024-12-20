@@ -18,16 +18,18 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: ${{ matrix.go }}
-      - name: Verify dependencies
-        run: go mod verify
-      - name: Build
-        run: go build -v ./...
+      - name: Install dependencies
+        run: go mod tidy
       - name: Vet
         run: go vet ./...
-      - name: Static analysis
-        run: go run honnef.co/go/tools/cmd/staticcheck@latest ./...
-      - name: Check vulnerabilities
-        run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+      - uses: dominikh/staticcheck-action@v1
+        with:
+          version: "latest"
+          install-go: false
+          cache-key: ${{ matrix.go }}
+      - uses: golang/govulncheck-action@v1
+        with:
+          go-version-input: ${{ matrix.go }}
       - name: Test
         if: matrix.os != 'ubuntu-latest'
         run: go test -race -vet=off ./...
