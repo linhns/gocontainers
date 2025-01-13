@@ -1,5 +1,4 @@
-// Package vector provides a simple vector implementation
-// based on Go slices.
+// Package vector provides a simple vector implementation.
 package vector
 
 import (
