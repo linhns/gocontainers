@@ -36,6 +36,10 @@ func (s *Set[K]) Contains(key K) bool {
 	return ok
 }
 
+func (s *Set[K]) Empty() bool {
+	return len(s.data) == 0
+}
+
 // Len returns the number of elements in the set
 func (s *Set[K]) Len() int {
 	return len(s.data)
@@ -73,7 +77,7 @@ func (s *Set[K]) All() iter.Seq[K] {
 func Collect[K comparable](seq iter.Seq[K]) *Set[K] {
 	s := New[K]()
 	for v := range seq {
-		s.Add(v)
+		s.data[v] = struct{}{}
 	}
 	return s
 }
@@ -82,10 +86,10 @@ func Collect[K comparable](seq iter.Seq[K]) *Set[K] {
 func Union[K comparable](s1, s2 *Set[K]) *Set[K] {
 	result := New[K]()
 	for v := range s1.data {
-		result.Add(v)
+		result.data[v] = struct{}{}
 	}
 	for v := range s2.data {
-		result.Add(v)
+		result.data[v] = struct{}{}
 	}
 	return result
 }
@@ -94,8 +98,8 @@ func Union[K comparable](s1, s2 *Set[K]) *Set[K] {
 func Intersection[K comparable](s1, s2 *Set[K]) *Set[K] {
 	result := New[K]()
 	for v := range s1.data {
-		if s2.Contains(v) {
-			result.Add(v)
+		if _, ok := s2.data[v]; ok {
+			result.data[v] = struct{}{}
 		}
 	}
 
@@ -107,8 +111,8 @@ func Intersection[K comparable](s1, s2 *Set[K]) *Set[K] {
 func Difference[K comparable](s1, s2 *Set[K]) *Set[K] {
 	result := New[K]()
 	for v := range s1.data {
-		if !s2.Contains(v) {
-			result.Add(v)
+		if _, ok := s2.data[v]; !ok {
+			result.data[v] = struct{}{}
 		}
 	}
 
