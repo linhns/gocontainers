@@ -4,9 +4,10 @@ import (
 	"cmp"
 	"math/rand/v2"
 	"slices"
+	"sync"
 	"testing"
 
-	"github.com/linhns/gocontainers/priorityqueue"
+	"github.com/linhns/gocontainers/concurrent/priorityqueue"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -88,4 +89,31 @@ func TestPriorityQueueCustomType(t *testing.T) {
 
 	_, ok = pq.Top()
 	assert.False(t, ok)
+}
+
+func TestPriorityQueueConcurrent(t *testing.T) {
+	pq := priorityqueue.New(cmp.Compare[string])
+
+	var wg sync.WaitGroup
+	wg.Add(200)
+
+	start := make(chan struct{})
+	words := []string{"apple", "banana", "cherry", "date"}
+	for i := 0; i < 100; i++ {
+		word := words[i%4]
+		go func(s string) {
+			defer wg.Done()
+			<-start
+			pq.Push(s)
+		}(word)
+
+		go func() {
+			defer wg.Done()
+			<-start
+			_, _ = pq.Pop()
+		}()
+	}
+
+	close(start)
+	wg.Wait()
 }

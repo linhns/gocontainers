@@ -36,6 +36,7 @@ func (s *Set[K]) Contains(key K) bool {
 	return ok
 }
 
+// Empty reports whether the set is empty
 func (s *Set[K]) Empty() bool {
 	return len(s.data) == 0
 }

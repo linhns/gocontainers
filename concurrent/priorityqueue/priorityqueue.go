@@ -1,14 +1,17 @@
 // Package priorityqueue provides a generic priority queue implementation
-// based on array heap.
+// based on array heap that is safe for concurrent use.
 package priorityqueue
 
 import (
+	"sync"
+
 	"github.com/linhns/gocontainers/comparator"
 )
 
 // PriorityQueue is a generic priority queue with a configurable comparision
 // function (comparator).
 type PriorityQueue[T any] struct {
+	mu         sync.RWMutex
 	data       []T
 	comparator comparator.Comparator[T]
 }
@@ -23,16 +26,25 @@ func New[T any](comparator comparator.Comparator[T]) *PriorityQueue[T] {
 
 // Len returns the number of elements in the priority queue.
 func (pq *PriorityQueue[T]) Len() int {
+	pq.mu.RLock()
+	defer pq.mu.RUnlock()
+
 	return len(pq.data)
 }
 
 // Empty reports whether the priority queue is empty.
 func (pq *PriorityQueue[T]) Empty() bool {
+	pq.mu.RLock()
+	defer pq.mu.RUnlock()
+
 	return len(pq.data) == 0
 }
 
 // Push adds an element to the priority queue.
 func (pq *PriorityQueue[T]) Push(v T) {
+	pq.mu.Lock()
+	defer pq.mu.Unlock()
+
 	pq.data = append(pq.data, v)
 	pq.siftUp(len(pq.data) - 1)
 }
@@ -41,6 +53,9 @@ func (pq *PriorityQueue[T]) Push(v T) {
 // If the queue is empty, it returns the zero value of the element type
 // and false.
 func (pq *PriorityQueue[T]) Top() (T, bool) {
+	pq.mu.RLock()
+	defer pq.mu.RUnlock()
+
 	if len(pq.data) == 0 {
 		var zero T
 		return zero, false
@@ -52,6 +67,9 @@ func (pq *PriorityQueue[T]) Top() (T, bool) {
 // removes it from the queue. If the queue is empty, it returns the zero
 // value of the element type and false.
 func (pq *PriorityQueue[T]) Pop() (T, bool) {
+	pq.mu.Lock()
+	defer pq.mu.Unlock()
+
 	if len(pq.data) == 0 {
 		var zero T
 		return zero, false
