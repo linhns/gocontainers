@@ -1,28 +1,28 @@
-// Package set implements the set data structure
-// safe for concurrent use.
-package set
+// Package hashset implements the set data structure based on hash table.
+// It is safe for concurrent use.
+package hashset
 
 import (
 	"iter"
 	"sync"
 )
 
-// Set holds a set of unique elements
-type Set[K comparable] struct {
+// HashSet holds a set of unique elements
+type HashSet[K comparable] struct {
 	mu   sync.RWMutex
 	data map[K]struct{}
 }
 
-// New creates and initialize a new [Set]
-func New[K comparable]() *Set[K] {
-	s := &Set[K]{
+// New creates and initialize a new [HashSet]
+func New[K comparable]() *HashSet[K] {
+	s := &HashSet[K]{
 		data: make(map[K]struct{}),
 	}
 	return s
 }
 
 // Contains report whether an element exists in the set
-func (s *Set[K]) Contains(key K) bool {
+func (s *HashSet[K]) Contains(key K) bool {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -31,7 +31,7 @@ func (s *Set[K]) Contains(key K) bool {
 }
 
 // Empty reports whether the set is empty
-func (s *Set[K]) Empty() bool {
+func (s *HashSet[K]) Empty() bool {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -39,7 +39,7 @@ func (s *Set[K]) Empty() bool {
 }
 
 // Len returns the number of elements in the set
-func (s *Set[K]) Len() int {
+func (s *HashSet[K]) Len() int {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -47,7 +47,7 @@ func (s *Set[K]) Len() int {
 }
 
 // Clear removes all elements from the set
-func (s *Set[K]) Clear() {
+func (s *HashSet[K]) Clear() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -56,7 +56,7 @@ func (s *Set[K]) Clear() {
 
 // Add adds an element to the set
 // If an element already exists in the set, it is ignored.
-func (s *Set[K]) Add(key K) {
+func (s *HashSet[K]) Add(key K) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -65,7 +65,7 @@ func (s *Set[K]) Add(key K) {
 
 // Remove removes an element from the set.
 // If an element does not exist in the set, it is ignored.
-func (s *Set[K]) Remove(key K) {
+func (s *HashSet[K]) Remove(key K) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -73,7 +73,7 @@ func (s *Set[K]) Remove(key K) {
 }
 
 // All is an iterator over the elements in the set
-func (s *Set[K]) All() iter.Seq[K] {
+func (s *HashSet[K]) All() iter.Seq[K] {
 	return func(yield func(K) bool) {
 		s.mu.RLock()
 		defer s.mu.RUnlock()
@@ -86,7 +86,7 @@ func (s *Set[K]) All() iter.Seq[K] {
 }
 
 // Collect creates a new set from an iterator
-func Collect[K comparable](seq iter.Seq[K]) *Set[K] {
+func Collect[K comparable](seq iter.Seq[K]) *HashSet[K] {
 	s := New[K]()
 	for v := range seq {
 		s.data[v] = struct{}{}
@@ -95,7 +95,7 @@ func Collect[K comparable](seq iter.Seq[K]) *Set[K] {
 }
 
 // Equal reports whether two sets contain the same elements
-func Equal[K comparable](s1, s2 *Set[K]) bool {
+func Equal[K comparable](s1, s2 *HashSet[K]) bool {
 	s1.mu.RLock()
 	defer s1.mu.RUnlock()
 
@@ -114,7 +114,7 @@ func Equal[K comparable](s1, s2 *Set[K]) bool {
 }
 
 // Union returns a new set that contains all elements from two sets
-func Union[K comparable](s1, s2 *Set[K]) *Set[K] {
+func Union[K comparable](s1, s2 *HashSet[K]) *HashSet[K] {
 	s1.mu.RLock()
 	defer s1.mu.RUnlock()
 
@@ -132,7 +132,7 @@ func Union[K comparable](s1, s2 *Set[K]) *Set[K] {
 }
 
 // Intersection returns a new set that contains common elements from two sets
-func Intersection[K comparable](s1, s2 *Set[K]) *Set[K] {
+func Intersection[K comparable](s1, s2 *HashSet[K]) *HashSet[K] {
 	s1.mu.RLock()
 	defer s1.mu.RUnlock()
 
@@ -151,7 +151,7 @@ func Intersection[K comparable](s1, s2 *Set[K]) *Set[K] {
 
 // Difference returns a new set that contains elements
 // that are in the first set but not in the second set
-func Difference[K comparable](s1, s2 *Set[K]) *Set[K] {
+func Difference[K comparable](s1, s2 *HashSet[K]) *HashSet[K] {
 	s1.mu.RLock()
 	defer s1.mu.RUnlock()
 

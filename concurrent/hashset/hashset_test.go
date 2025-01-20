@@ -1,4 +1,4 @@
-package set_test
+package hashset_test
 
 import (
 	"slices"
@@ -7,13 +7,13 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/linhns/gocontainers/concurrent/set"
+	"github.com/linhns/gocontainers/concurrent/hashset"
 )
 
 func TestSetBasicOperations(t *testing.T) {
 	t.Parallel()
 
-	s := set.New[int]()
+	s := hashset.New[int]()
 
 	assert.True(t, s.Empty())
 	s.Add(1)
@@ -41,43 +41,43 @@ func TestSetBasicOperations(t *testing.T) {
 func TestSetEqual(t *testing.T) {
 	t.Parallel()
 
-	s1 := set.New[int]()
-	s2 := set.New[int]()
+	s1 := hashset.New[int]()
+	s2 := hashset.New[int]()
 
-	assert.True(t, set.Equal(s1, s2))
+	assert.True(t, hashset.Equal(s1, s2))
 	s1.Add(1)
 	s1.Add(2)
-	assert.False(t, set.Equal(s1, s2))
+	assert.False(t, hashset.Equal(s1, s2))
 
 	s2.Add(2)
 	s2.Add(1)
-	assert.True(t, set.Equal(s1, s2))
+	assert.True(t, hashset.Equal(s1, s2))
 
-	s3 := set.New[int]()
+	s3 := hashset.New[int]()
 	s3.Add(1)
 	s3.Add(3)
-	assert.False(t, set.Equal(s1, s3))
+	assert.False(t, hashset.Equal(s1, s3))
 }
 
 func TestSetAllCollectRoundtrip(t *testing.T) {
 	t.Parallel()
 
-	s := set.New[string]()
+	s := hashset.New[string]()
 	s.Add("dog")
 	s.Add("cat")
 	s.Add("fox")
 	s.Add("fox")
 
-	rdtrip := set.Collect(s.All())
+	rdtrip := hashset.Collect(s.All())
 
-	assert.True(t, set.Equal(s, rdtrip))
+	assert.True(t, hashset.Equal(s, rdtrip))
 }
 
 func TestSetMathOperations(t *testing.T) {
 	t.Parallel()
 
-	s1 := set.New[int]()
-	s2 := set.New[int]()
+	s1 := hashset.New[int]()
+	s2 := hashset.New[int]()
 
 	s1.Add(1)
 	s1.Add(2)
@@ -89,18 +89,18 @@ func TestSetMathOperations(t *testing.T) {
 	s2.Add(3)
 	s2.Add(4)
 
-	union := set.Collect(slices.Values([]int{1, 2, 3, 4, 5}))
-	assert.True(t, set.Equal(set.Union(s1, s2), union))
+	union := hashset.Collect(slices.Values([]int{1, 2, 3, 4, 5}))
+	assert.True(t, hashset.Equal(hashset.Union(s1, s2), union))
 
-	intersection := set.Collect(slices.Values([]int{1, 2, 4}))
-	assert.True(t, set.Equal(set.Intersection(s1, s2), intersection))
+	intersection := hashset.Collect(slices.Values([]int{1, 2, 4}))
+	assert.True(t, hashset.Equal(hashset.Intersection(s1, s2), intersection))
 
-	difference := set.Collect(slices.Values([]int{5}))
-	assert.True(t, set.Equal(set.Difference(s1, s2), difference))
+	difference := hashset.Collect(slices.Values([]int{5}))
+	assert.True(t, hashset.Equal(hashset.Difference(s1, s2), difference))
 }
 
 func TestSetConcurrent(t *testing.T) {
-	s := set.New[int]()
+	s := hashset.New[int]()
 
 	var wg sync.WaitGroup
 	wg.Add(200)
