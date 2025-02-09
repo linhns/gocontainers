@@ -400,7 +400,7 @@ func TestVectorConcurrent(t *testing.T) {
 	addFunc := func(strs []string) {
 		defer wg.Done()
 		<-start
-		v.Insert(3, strs...)
+		v.Insert(1, strs...)
 	}
 
 	removeFunc := func() {
