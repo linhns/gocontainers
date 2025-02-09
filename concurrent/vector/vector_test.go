@@ -1,9 +1,10 @@
 package vector_test
 
 import (
+	"sync"
 	"testing"
 
-	"github.com/linhns/gocontainers/vector"
+	"github.com/linhns/gocontainers/concurrent/vector"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -385,4 +386,73 @@ func TestValuesCollectRoundtrip(t *testing.T) {
 	want := vector.Of(0, 2, 4, 6, 8)
 	got := vector.Collect(want.Values())
 	assert.True(t, vector.Equal(got, want))
+}
+
+func TestVectorConcurrent(t *testing.T) {
+	t.Parallel()
+
+	strs := []string{"one", "two", "three", "four", "five"}
+	v := vector.Of(strs...)
+
+	var wg sync.WaitGroup
+	start := make(chan struct{})
+
+	addFunc := func(strs []string) {
+		defer wg.Done()
+		<-start
+		v.Insert(3, strs...)
+	}
+
+	removeFunc := func() {
+		defer wg.Done()
+		<-start
+		v.RemoveRange(0, 4)
+	}
+
+	pushFunc := func() {
+		defer wg.Done()
+		<-start
+		v.PushBack("six")
+	}
+
+	popFunc := func() {
+		defer wg.Done()
+		<-start
+		_, _ = v.PopBack()
+	}
+
+	wg.Add(4)
+	go addFunc(strs)
+	go removeFunc()
+	go pushFunc()
+	go popFunc()
+
+	close(start)
+	wg.Wait()
+}
+
+func TestVectorIteratorConcurrent(t *testing.T) {
+	t.Parallel()
+
+	v := vector.Of(1, 2, 3, 4, 5)
+
+	start := make(chan struct{})
+
+	go func() {
+		<-start
+		for range v.Backward() {
+		}
+	}()
+
+	go func() {
+		<-start
+		for range v.All() {
+		}
+	}()
+
+	go func() {
+		<-start
+		vector.Collect(v.Values())
+	}()
+	close(start)
 }

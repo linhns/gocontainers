@@ -4,12 +4,14 @@ package vector
 import (
 	"iter"
 	"slices"
+	"sync"
 )
 
 // Vector represent a growable collection of elements
 // that are stored contiguously in memory.
 type Vector[T any] struct {
 	data []T
+	mu   sync.RWMutex
 }
 
 // New creates and initializes a new [Vector]
@@ -36,12 +38,18 @@ func Of[T any](v ...T) *Vector[T] {
 
 // PushBack adds an element to the end of the vector
 func (v *Vector[T]) PushBack(val T) {
+	v.mu.Lock()
+	defer v.mu.Unlock()
+
 	v.data = append(v.data, val)
 }
 
 // PopBack removes and returns the last element from the vector.
 // If the vector is empty, it returns a zero value and false.
 func (v *Vector[T]) PopBack() (T, bool) {
+	v.mu.Lock()
+	defer v.mu.Unlock()
+
 	var zero T
 	if len(v.data) == 0 {
 		return zero, false
@@ -54,22 +62,34 @@ func (v *Vector[T]) PopBack() (T, bool) {
 
 // Len returns the number of elements in the vector.
 func (v *Vector[T]) Len() int {
+	v.mu.RLock()
+	defer v.mu.RUnlock()
+
 	return len(v.data)
 }
 
 // Cap returns the number of elements that the vector
 // can hold without further allocation.
 func (v *Vector[T]) Cap() int {
+	v.mu.RLock()
+	defer v.mu.RUnlock()
+
 	return cap(v.data)
 }
 
 // Empty reports whether the vector is empty.
 func (v *Vector[T]) Empty() bool {
+	v.mu.RLock()
+	defer v.mu.RUnlock()
+
 	return len(v.data) == 0
 }
 
 // Get returns the zero-indexed ith element of v, if any.
 func (v *Vector[T]) Get(i int) (value T, ok bool) {
+	v.mu.RLock()
+	defer v.mu.RUnlock()
+
 	if i >= 0 && i < len(v.data) {
 		return v.data[i], true
 	}
@@ -80,6 +100,9 @@ func (v *Vector[T]) Get(i int) (value T, ok bool) {
 //
 // Set panics if n is negative or greater than or equal to the length of v.
 func (v *Vector[T]) Set(i int, value T) {
+	v.mu.Lock()
+	defer v.mu.Unlock()
+
 	if i < 0 || i >= len(v.data) {
 		panic("vector.Set: index out of range")
 	}
@@ -89,6 +112,9 @@ func (v *Vector[T]) Set(i int, value T) {
 
 // Front returns the first element of v, if any.
 func (v *Vector[T]) Front() (value T, ok bool) {
+	v.mu.RLock()
+	defer v.mu.RUnlock()
+
 	if len(v.data) > 0 {
 		value = v.data[0]
 		ok = true
@@ -98,6 +124,9 @@ func (v *Vector[T]) Front() (value T, ok bool) {
 
 // Back returns the last element of v, if any.
 func (v *Vector[T]) Back() (value T, ok bool) {
+	v.mu.RLock()
+	defer v.mu.RUnlock()
+
 	if len(v.data) > 0 {
 		value = v.data[len(v.data)-1]
 		ok = true
@@ -107,6 +136,9 @@ func (v *Vector[T]) Back() (value T, ok bool) {
 
 // Clear removes all elements from the vector
 func (v *Vector[T]) Clear() {
+	v.mu.Lock()
+	defer v.mu.Unlock()
+
 	v.data = v.data[:0]
 }
 
@@ -116,6 +148,9 @@ func (v *Vector[T]) Clear() {
 //
 // If n is negative, Grow panics.
 func (v *Vector[T]) Grow(n int) {
+	v.mu.Lock()
+	defer v.mu.Unlock()
+
 	if n < 0 {
 		panic("vector.Grow: negative count")
 	}
@@ -130,6 +165,9 @@ func (v *Vector[T]) Grow(n int) {
 
 // Clip reduces the capacity of the vector as much as possible.
 func (v *Vector[T]) Clip() {
+	v.mu.Lock()
+	defer v.mu.Unlock()
+
 	if len(v.data) == cap(v.data) {
 		return
 	}
@@ -147,6 +185,9 @@ func (v *Vector[T]) Clip() {
 //
 // If n is negative, Resize panics.
 func (v *Vector[T]) Resize(n int) {
+	v.mu.Lock()
+	defer v.mu.Unlock()
+
 	if n < 0 {
 		panic("vector.Resize: negative count")
 	}
@@ -165,6 +206,9 @@ func (v *Vector[T]) Resize(n int) {
 // Insert panics if i is out of range.
 // This function is O(v.Len() + len(vals))
 func (v *Vector[T]) Insert(i int, vals ...T) {
+	v.mu.Lock()
+	defer v.mu.Unlock()
+
 	if i < 0 || i > len(v.data) {
 		panic("vector.Insert: index out of range")
 	}
@@ -183,6 +227,9 @@ func (v *Vector[T]) Remove(i int) {
 //
 // RemoveRange panics if either i or j is out of range.
 func (v *Vector[T]) RemoveRange(i, j int) {
+	v.mu.Lock()
+	defer v.mu.Unlock()
+
 	if i < 0 || j < 0 || i > len(v.data) || j > len(v.data) {
 		panic("vector.RemoveRange: index out of range")
 	}
@@ -198,23 +245,55 @@ func (v *Vector[T]) RemoveRange(i, j int) {
 
 // Equal reports whether two vectors are equal.
 func Equal[T comparable](v1, v2 *Vector[T]) bool {
+	v1.mu.RLock()
+	defer v1.mu.RUnlock()
+	v2.mu.RLock()
+	defer v2.mu.RUnlock()
+
 	return slices.Equal(v1.data, v2.data)
 }
 
 // Values returns an iterator that yields the vector elements in order.
 func (v *Vector[T]) Values() iter.Seq[T] {
-	return slices.Values(v.data)
+	return func(yield func(T) bool) {
+		v.mu.RLock()
+		defer v.mu.RUnlock()
+
+		for _, val := range v.data {
+			if !yield(val) {
+				break
+			}
+		}
+	}
 }
 
 // All returns an iterator over index-value pairs in the vector.
 func (v *Vector[T]) All() iter.Seq2[int, T] {
-	return slices.All(v.data)
+	return func(yield func(int, T) bool) {
+		v.mu.RLock()
+		defer v.mu.RUnlock()
+
+		for i, val := range v.data {
+			if !yield(i, val) {
+				break
+			}
+		}
+	}
 }
 
 // Backward returns an iterator over index-value pairs in the vector,
 // traversing it backward with decreasing indices.
 func (v *Vector[T]) Backward() iter.Seq2[int, T] {
-	return slices.Backward(v.data)
+	return func(yield func(int, T) bool) {
+		v.mu.RLock()
+		defer v.mu.RUnlock()
+
+		for i := len(v.data) - 1; i >= 0; i-- {
+			if !yield(i, v.data[i]) {
+				break
+			}
+		}
+	}
 }
 
 // Collect collects values from an iterator and returns a new vector.
